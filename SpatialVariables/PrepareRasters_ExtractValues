@@ -1,0 +1,54 @@
+###Preparing environmental and other spatial variables for SPRUCE-RF model
+
+###Part 0 (Bash): Clip E. Africa region ("MAPS1_clips")
+
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 consensus_full_class_10.tif  /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/consensus_full_class_10_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 altitude_1KMmedian_MERIT.tif  /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/altitude_1KMmedian_MERIT_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 slope_1KMmedian_MERIT.tif  /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/slope_1KMmedian_MERIT_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 AI_annual.tif /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/AI_annual_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 bio1_mean.tif /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/bio1_mean_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 bio5_mean.tif /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/bio5_mean_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 bio6_mean.tif /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/bio6_mean_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 bio12_mean.tif /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/bio12_mean_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 bio13_mean.tif /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/bio13_mean_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 bio14_mean.tif /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/bio14_mean_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 accessibility_to_cities_2015_v1.0_res.tif   /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/accessibility_to_cities_2015_v1.0_res_MAPS1.tif   -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 friction_surface_2015_v1.0.tif /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/friction_surface_2015_v1.0_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 GHS_BUILT_LDS2014_GLOBE_R2016A_54009_1k_v1_0_WGS84.tif /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/GHS_BUILT_LDS2014_GLOBE_R2016A_54009_1k_v1_0_WGS84_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 GPP_mean.tif /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/GPP_mean_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
+
+#Edit so that no data value is either -999 or -9999
+gdalwarp -dstnodata -9999 fuscgroup_MAPS1_wrongND.tif fuscgroup_MAPS1.tif
+gdalwarp -dstnodata -9999 morsgroup_MAPS1_wrongND.tif morsgroup_MAPS1.tif
+gdalwarp -dstnodata -9999 palpgroup_MAPS1_wrongND.tif palpgroup_MAPS1.tif
+gdalwarp -dstnodata -9999 AI_annual_MAPS1_wrongND.tif AI_annual_MAPS1.tif
+gdalwarp -dstnodata -9999 kernel_wrongND.tif kernel.tif
+
+###Part 1 (Bash): Extract relevant points from environmental surfaces
+
+export WD=/share/hennlab/users/espless/EnvironmentalData/ExtractedValues
+export ENV=/share/hennlab/users/espless/EnvironmentalData/MAPS1_clips
+
+module load gdal/2.4.4
+
+cp /share/hennlab/users/espless/MAPS/Pagani_Scheinfeldt_excludeHadBan/2_4/2_4-MAPS-test-sim/demes.txt $WD
+awk '{print $2,$1}' $WD/demes.txt > $WD/demes_reverse.txt
+
+
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/consensus_full_class_10_MAPS1.tif	> $WD/consensus_full_class_10_MAPS1.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/altitude_1KMmedian_MERIT_MAPS1.tif	> $WD/altitude_1KMmedian_MERIT_MAPS1.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/slope_1KMmedian_MERIT_MAPS1.tif	> $WD/slope_1KMmedian_MERIT_MAPS1.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/AI_annual_MAPS1.tif	> $WD/AI_annual_MAPS1.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/accessibility_to_cities_2015_v1.0_res_MAPS1.tif	> $WD/accessibility_to_cities_2015_v1.0_res_MAPS1.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/friction_surface_2015_v1.0_MAPS1.tif	> $WD/friction_surface_2015_v1.0_MAPS1.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/GHS_BUILT_LDS2014_GLOBE_R2016A_54009_1k_v1_0_WGS84_MAPS1.tif	> $WD/GHS_BUILT_LDS2014_GLOBE_R2016A_54009_1k_v1_0_WGS84_MAPS1.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/GPP_mean_MAPS1.tif	> $WD/GPP_mean_MAPS1.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/kernel.tif	> $WD/kernel.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/morsgroup_MAPS1.tif	> $WD/morsgroup_MAPS1.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/palpgroup_MAPS1.tif	> $WD/palpgroup_MAPS1.txt
+cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/fuscgroup_MAPS1.tif	> $WD/fuscgroup_MAPS1.txt
+
+for var in 1 5 6 12 13 14
+do
+nice cat $WD/demes_reverse.txt | gdallocationinfo -valonly -wgs84 $ENV/bio${var}_mean_MAPS1.tif	> $WD/bio${var}_mean_MAPS1.txt
+done
