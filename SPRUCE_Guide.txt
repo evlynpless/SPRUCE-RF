@@ -1,0 +1,57 @@
+SPRUCE Pipeline Guide
+
+Before beginning, here are a few questions for your consideration:
+1) What environmental and other spatial variables are likely to affect population structure, and are these available to download?
+2) What is the geographic range you are interested in? Do you have reasonable coverage (of genetic samples) over this range?
+3) What time frame are you interested in? This will affect how you filter the IBD segments.
+
+Note that Parts 1 and 2 can be done in any order or in parallel.
+
+Part 1: Generate migration surfaces using MAPS (See also https://github.com/halasadi/MAPS)
+
+1.A: Prepare genomic data ("1A_Merge_Filter.sh" provided as an example)
+Identify the genomic data you would like to include. Merge and filter, and split by chromosome. Data should be in plink format (bed/fam/bim).
+
+1.B Perform haplotype phasing, exclude close relatives, and call identical by descent tracts ("1B_Phase_and_CallIBD.sh")
+Alternative option: https://github.com/halasadi/ibd_data_pipeline
+
+1.C. Convert start and end from genomic positions to centimorgans ("1C_Interpolate_Position_to_cM.R", adapted from https://github.com/halasadi/ibd_data_pipeline/blob/master/interpolate.R))
+
+1.D Concatanate the ibd segments from each chromosom into one file (below)
+
+cat $IBD_OUT/Pagani_Scheinfeldt_ibd_chr*_merged_cM.ibd > $IBD_OUT/Pagani_Scheinfeldt_ibd_chr_all_merged_cM.ibd
+
+1.E Convert .ibd file to .sims format for MAPS ("1E_IBDfile_to_sims.sh", adapted from https://github.com/halasadi/MAPS/tree/master/convert_beagle)
+You will need to edit script according to your selected IBD tract sizes and run once for each time interval
+
+1.F Create and accessory files (.outer, params-test-lower_upper.ini) to your MAPS folder, and then run the MAPS software
+You will need to run the software separately for each time period
+
+1.G Run plotmaps (See "https://github.com/halasadi/plotmaps")
+You may find a conda environment helpful to install plotmaps
+
+R
+library(plotmaps)
+plot_maps(add.pts = TRUE, add.graph = TRUE, add.countries = FALSE,
+	  longlat = FALSE, mcmcpath = "/Pagani_Scheinfeldt/2_6/2_6-MAPS-test-sim",
+	  outpath = "/Pagani_Scheinfeldt/2_6/plotmaps", width = 10, height = 6)
+
+plot_maps(add.pts = TRUE, add.graph = TRUE, add.countries = FALSE,
+	  longlat = FALSE, mcmcpath = "/Pagani_Scheinfeldt/6_Inf/6_Inf-MAPS-test-sim",
+	  outpath = "/Pagani_Scheinfeldt/6_Inf/plotmaps", width = 10, height = 6)
+
+
+1.E Extract migration rate values from the MAPS output files 
+
+Part 2: 
+
+2.A Prepare spatial variables ("GenerateSpatialVariables")
+See also: https://github.com/evlynpless/MOSQLAND
+In general: download spatial variables, crop to region of interest, and set the no data value to something sensible
+
+2.B Extract environmental values from the coordinates corresponding to the demes in Step 1.E
+
+Part 3: Random forest regression ("3_SPRUCE_RandomForest.R")
+Find associations between the environmental/spatial variables and the migration rates over space. Use cross-validation to validate.
+User will need to run the script separately for each time period and may also need to perform some tuning of the model.
+

@@ -1,0 +1,88 @@
+####Merge datasets pipeline - Pagani 2015 + Scheinfeldt 2019
+
+#Conservative approach where all problematic SNPs are removed, including everything from the *_NonMatching.txt files
+#Final tally: 517383 variants and 821 people
+#Final dataset: /share/hennlab/users/espless/MergedDataEastAfrica/Merge3/Pagani2015_scheinfeldt_geno0.05
+
+
+####Step 0. Use plink to see what the expected overlap between the .bim files
+
+plink --bfile /share/hennlab/data/snp-array/Ethiopians_Omni2.5_Pagani/PaganiEtAl2015_SNPchip/PaganiEtAl2015_omni2.5-8_ETHIOPIA_genosnp_RELEASE --bmerge /share/hennlab/data/scheinfeldt_2019/files/Plink_files/dbGaP --merge-mode 7
+1083499 markers to be merged from
+/share/hennlab/data/scheinfeldt_2019/files/Plink_files/dbGaP.bim.
+Of these, 553511 are new, while 529988 are present in the base dataset.
+63 more multiple-position warnings: see log file.
+Error: 259735 variants with 3+ alleles present.
+
+plink --bfile /share/hennlab/data/snp-array/Pagani_Omni1/Pagani2012_Ethiopia --bmerge /share/hennlab/data/scheinfeldt_2019/files/Plink_files/dbGaP --merge-mode 7
+1048713 markers loaded from
+/share/hennlab/data/snp-array/Pagani_Omni1/Pagani2012_Ethiopia.bim.
+1083499 markers to be merged from
+/share/hennlab/data/scheinfeldt_2019/files/Plink_files/dbGaP.bim.
+Of these, 506330 are new, while 577169 are present in the base dataset.
+577084 more multiple-position warnings: see log file.
+
+##### Step 1: Align to 1000G
+
+#Activate a Conda environment that includes plink, python 2.7, and pandas
+
+source /share/hennlab/progs/miniconda3/etc/profile.d/conda.sh
+conda activate SNP-QC
+
+#Run match_against_1000g.py for Pagani 2015
+
+nice python /share/hennlab/lab_scripts/snake-SNP_QC/scripts/match_against_1000g.py --bim /share/hennlab/data/snp-array/Ethiopians_Omni2.5_Pagani/PaganiEtAl2015_SNPchip/PaganiEtAl2015_omni2.5-8_ETHIOPIA_genosnp_RELEASE.bim --legend /share/hennlab/reference/1000g_legend_forQC/combined_autosome_X_XY_1000GP_Phase3_GRCh37_SNPonly.legend --out /share/hennlab/users/espless/MergedDataEastAfrica/PaganiEtAl2015_omni2.5-8_ETHIOPIA
+
+#Output files are *_FlipStrand.txt, *_Indel.txt, *_NonMatching.txt
+
+module load plink
+plink --bfile /share/hennlab/data/snp-array/Ethiopians_Omni2.5_Pagani/PaganiEtAl2015_SNPchip/PaganiEtAl2015_omni2.5-8_ETHIOPIA_genosnp_RELEASE --flip /share/hennlab/users/espless/MergedDataEastAfrica/PaganiEtAl2015_omni2.5-8_ETHIOPIA_FlipStrand.txt --make-bed --out /share/hennlab/users/espless/MergedDataEastAfrica/Merge3/PaganiEtAl2015_omni2.5-8_ETHIOPIA_flipped
+
+#1072859 SNPs flipped, 5364295 SNP IDs not present
+#Warning: 168490 het. haploid genotypes present
+#2379855 variants and 124 people pass filters and QC.
+
+
+#Run for Scheinfeldt data as well
+
+##### Step 3: Remove problematic SNPs
+plink --bfile PaganiEtAl2015_omni2.5-8_ETHIOPIA_flipped --exclude PaganiEtAl2015_omni2.5-8_ETHIOPIA_NonMatching.txt --make-bed --out PaganiEtAl2015_omni2.5-8_ETHIOPIA_flipped_match
+
+#Warning: 88511 het. haploid genotypes present
+#2199142 variants and 124 people pass filters and QC.
+
+plink --bfile PaganiEtAl2015_omni2.5-8_ETHIOPIA_flipped_match --exclude PaganiEtAl2015_omni2.5-8_ETHIOPIA_flipped_match.hh --make-bed --out PaganiEtAl2015_omni2.5-8_ETHIOPIA_flipped_match_noHH
+
+#2170950 variants and 124 people pass filters and QC.
+
+####: Step 4A Check concordance
+
+plink --bfile PaganiEtAl2015_omni2.5-8_ETHIOPIA_flipped_match --bmerge /share/hennlab/users/espless/MergedDataEastAfrica/Merge1/scheinfeldt2019_flipped_match2 --merge-mode 7
+
+#Of these, 516755 are new, while 521293 are present in the base dataset.
+#Warning: Variants 'rs4040617' and 'kgp5225889' have the same position.
+#Warning: Variants 'rs2905036' and 'kgp9890149' have the same position.
+#Warning: Variants 'rs28609852' and 'kgp3324955' have the same position.
+#124788 more same-position warnings: see log file.
+
+
+plink --bfile PaganiEtAl2015_omni2.5-8_ETHIOPIA_flipped_match_noHH --bmerge /share/hennlab/users/espless/MergedDataEastAfrica/Merge1/scheinfeldt2019_flipped_match2 --merge-mode 7
+
+#Of these, 516755 are new, while 521293 are present in the base dataset.
+#Warning: Variants 'rs4040617' and 'kgp5225889' have the same position.
+#Warning: Variants 'rs2905036' and 'kgp9890149' have the same position.
+#Warning: Variants 'rs28609852' and 'kgp3324955' have the same position.
+#123089 more same-position warnings: see log file.
+
+
+#### Step 5: Do the merge
+
+plink --bfile PaganiEtAl2015_omni2.5-8_ETHIOPIA_flipped_match --bmerge /share/hennlab/users/espless/MergedDataEastAfrica/Merge1/scheinfeldt2019_flipped_match2 --merge-mode 1 --make-bed --out Pagani2015_scheinfeldt
+
+
+#### Step 5: Remove loci with genotype missingness >95%
+
+#plink --bfile Pagani2015_scheinfeldt --geno 0.05 --make-bed --out Pagani2015_scheinfeldt_geno0.05
+#2198514 variants removed due to missing genotype data (--geno).
+#517383 variants and 821 people pass filters and QC.
+
