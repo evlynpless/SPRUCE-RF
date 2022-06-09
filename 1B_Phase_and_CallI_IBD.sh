@@ -1,4 +1,5 @@
-#Phase genomic data and find identical-by-descent tracts
+#Script for phasing genetic data and calling identical-by-descent tracts in preparation for running MAPS
+#Paths provided for Augrabies users
 
 module load shapeit/2.r904
 module load vcftools
@@ -13,9 +14,9 @@ export REF=/share/hennlab/reference/1000G_Phase3_haps-sample-legend/1000GP_Phase
 export PROGS=/share/hennlab/progs
 export UNRELATED=/share/hennlab/users/espless/MergedDataEastAfrica/Merge3/KingFiles_Pagani2015_scheinfeldt_geno0.05_mind0.1
 
-#1: Phase the merged, filtered data with SHAPEIT2
+#1: Phase with SHAPEIT2
 
-for chr in `seq 22` #split data by chromosome
+for chr in `seq 22`
 
 do
 

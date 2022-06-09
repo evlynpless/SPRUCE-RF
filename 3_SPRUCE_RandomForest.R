@@ -3,7 +3,7 @@
 library("randomForestSRC")
 par(mfrow=c(1,1))
 
-#Full Run (including all variables and full dataset)
+#Read in deme level values from all spatial variables
 Altitude <- read.table("altitude_1KMmedian_MERIT_MAPS1.txt")
 Slope <- read.table("slope_1KMmedian_MERIT_MAPS1.txt")
 Aridity <- read.table("AI_annual_MAPS1.txt")
@@ -33,43 +33,43 @@ Access <- read.table("accessibility_to_cities_2015_v1.0_res_MAPS1.txt")
 Building <- read.table("GHS_BUILT_LDS2014_GLOBE_R2016A_54009_1k_v1_0_WGS84_MAPS1.txt")
 Friction <- read.table("friction_surface_2015_v1.0_MAPS1.txt")
 
+#Merge the environmental datasets into one dataframe: each deme has own row, and each variable has own column
 Env.Table <- data.frame(Altitude, Slope, Aridity, MeanTemp, MaxTemp, MinTemp, MeanPrec, PrecWet, PrecDry, GPP, Fusc, Mors, Palp, LangAA, LangNC, LangNS, Evergreen, Decid, Tree, Shrub, Herb, Crop, Barren, Water, Kernel, Access, Building, Friction)
 names(Env.Table) <- c("Altitude", "Slope", "Aridity", "MeanTemp", "MaxTemp", "MinTemp", "MeanPrec", "PrecWet", "PrecDry", "GPP", "Fusc", "Mors", "Palp", "LangAA", "LangNC", "LangNS", "Evergreen", "Decid", "Tree", "Shrub", "Herb", "Crop", "Barren", "Water", "Kernel", "Access", "Building", "Friction")
 
-#Merge the environmental datasets: each deme has own row, and each variable has own column
-
-mRates1 <- read.table("2_4_5million/mRates.txt", header = F)
+#Read in deme level values for migration surfaces (each column in the mRates.txt file is a deme, and the order of demes is specified by demes.txt) for three independent runs of MAPS
+#(Make sure demes are in same order as the environmental data)
+#Convert to migration rate and take log value to normalize response variable
+mRates1 <- read.table("2-4cM_5million_Run1/mRates.txt", header = F)
 mRates1 <- 10^(mRates1)
+mRates1 <- log(mRates1)
 mRates1 <- colMeans(mRates1)
 
-mRates2 <- read.table("2_4_5million_R2/mRates.txt", header = F)
+mRates2 <- read.table("2-4cM_5million_Run2/mRates.txt", header = F)
 mRates2 <- 10^(mRates2)
+mRates2 <- log(mRates2)
 mRates2 <- colMeans(mRates2)
 
-mRates3 <- read.table("2_4_5million_R3/mRates.txt", header = F)
+mRates3 <- read.table("2-4cM_5million_Run3/mRates.txt", header = F)
 mRates3 <- 10^(mRates3)
 mRates3 <- colMeans(mRates3)
 
-#Average across the 3 runs
 mRates1_2_3 <- cbind(mRates1, mRates2, mRates3)
 mRatesAvg <- rowMeans(mRates1_2_3 )
-
-mean(mRatesAvg)
-sd(mRatesAvg)
-
 Full.Table = cbind(Env.Table, mRatesAvg)
 
-#Full Model Results
-#FullModel_noTuning = rfsrc(mRatesAvg ~ Altitude + Slope + Aridity + MeanTemp + MaxTemp + MinTemp + MeanPrec + PrecWet + PrecDry + GPP + Fusc + Mors + Palp +  LangAA + LangNC + LangNS + Evergreen + Decid + Tree + Shrub + Herb + Crop + Barren + Water + Kernel, importance=TRUE, na.action=c("na.omit"), data=Full.Table)
+#"Full Model" random forest with tuning
+#FullModel_noTuning_option = rfsrc(mRatesAvg ~ Altitude + Slope + Aridity + MeanTemp + MaxTemp + MinTemp + MeanPrec + PrecWet + PrecDry + GPP + Fusc + Mors + Palp +  LangAA + LangNC + LangNS + Evergreen + Decid + Tree + Shrub + Herb + Crop + Barren + Water + Kernel, importance=TRUE, na.action=c("na.omit"), data=Full.Table)
 FullModel_tune = tune(mRatesAvg ~ Altitude + Slope + Aridity + MeanTemp + MaxTemp + MinTemp + MeanPrec + PrecWet + PrecDry + GPP + Fusc + Mors + Palp +  LangAA + LangNC + LangNS + Evergreen + Decid + Tree + Shrub + Herb + Crop + Barren + Water + Kernel + Access + Building + Friction, importance=TRUE, na.action=c("na.omit"), data=Full.Table)
 FullModel_tune$optimal[["mtry"]]
 FullModel_tune$optimal[["nodesize"]]
 FullModel_withTuning = rfsrc(mRatesAvg ~ Altitude + Slope + Aridity + MeanTemp + MaxTemp + MinTemp + MeanPrec + PrecWet + PrecDry + GPP + Fusc + Mors + Palp +  LangAA + LangNC + LangNS + Evergreen + Decid + Tree + Shrub + Herb + Crop + Barren + Water + Kernel + Access + Building + Friction, importance=TRUE, na.action=c("na.omit"), mtry = FullModel_tune$optimal[["mtry"]], nodesize =  FullModel_tune$optimal[["nodesize"]], data=Full.Table)
 
+#Find correlation between predicted and actual migration rates, and RMSE of the model
 R = cor(FullModel_withTuning$predicted.oob, Full.Table$mRatesAvg)
 RMSE = sqrt(mean((FullModel_withTuning$predicted.oob - Full.Table$mRatesAvg)^2))
 
-#Results
+#Print results and create figures
 FullModel_withTuning
 plot(FullModel_withTuning)
 paste("R", R)
@@ -85,7 +85,7 @@ legend("bottomright", legend=c(paste0("Pearson correlation = ", round(R,3))), ce
 dev.off()
 
 
-#Run again with a 70/30 training/testing ration
+#Run random forest again with a 70/30 training/testing ratio
 NumPoints = nrow(Full.Table)
 Training = NumPoints * 0.7
 TrainingInt = round(Training)
@@ -98,14 +98,13 @@ TrainModel_tune$optimal[["mtry"]]
 TrainModel_tune$optimal[["nodesize"]]
 TrainModel = rfsrc(mRatesAvg ~ Altitude + Slope + Aridity + MeanTemp + MaxTemp + MinTemp + MeanPrec + PrecWet + PrecDry + GPP + Fusc + Mors + Palp +  LangAA + LangNC + LangNS + Evergreen + Decid + Tree + Shrub + Herb + Crop + Barren + Water + Kernel, importance=TRUE, na.action=c("na.omit"), mtry = TrainModel_tune$optimal[["mtry"]], nodesize =  TrainModel_tune$optimal[["nodesize"]], data=Full.Table.train)
 
-TrainModel
-plot(TrainModel)
+#Calculate predicted vs actual migration rates for testing and training data, and RMSE for each dataset
 Rtrain = cor(TrainModel$predicted.oob, Full.Table.train$mRatesAvg)
 Rtest = cor((predict.rfsrc(TrainModel, Full.Table.valid))$predicted, Full.Table.valid$mRatesAvg)
 RMSEtrain = sqrt(mean((TrainModel$predicted.oob - Full.Table.train$mRatesAvg)^2))
 RMSEtest = sqrt(mean((predict.rfsrc(TrainModel, Full.Table.valid)$predicted - Full.Table.valid$mRatesAvg)^2))
 
-#70/30 training/testing results
+#Print 70/30 training/testing results and create figures
 TrainModel
 plot(TrainModel)
 paste("Rtrain", Rtrain)

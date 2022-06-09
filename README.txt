@@ -20,4 +20,4 @@ SPRUCE_Guide.txt
 
 3_SPRUCE_RandomForest.R
 
-GenerateSpatialVariable (folder)
+GenerateSpatialVariable (directory)
