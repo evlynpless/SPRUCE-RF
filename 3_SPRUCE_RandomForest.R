@@ -52,6 +52,7 @@ mRates2 <- colMeans(mRates2)
 
 mRates3 <- read.table("2-4cM_5million_Run3/mRates.txt", header = F)
 mRates3 <- 10^(mRates3)
+mRates3 <- log(mRates3)
 mRates3 <- colMeans(mRates3)
 
 mRates1_2_3 <- cbind(mRates1, mRates2, mRates3)
@@ -77,7 +78,7 @@ paste("RMSE", RMSE)
 
 pdf("mRates_2-4_varImp.pdf", 7, 7)
 plot(FullModel_withTuning, m.target = NULL, plots.one.page = TRUE, sorted = TRUE, verbose = TRUE)
-dev.off() #MeanPrec and MinTemp are still the highest two variables
+dev.off() 
 
 pdf("mRates_2-4_FullScatter.pdf", 5, 5)
 plot(FullModel_withTuning$predicted.oob, Full.Table$mRatesAvg, xlab="Predicted migration", ylab="Observed migration (MAPS)")
@@ -85,44 +86,43 @@ legend("bottomright", legend=c(paste0("Pearson correlation = ", round(R,3))), ce
 dev.off()
 
 
-#Run random forest again with a 70/30 training/testing ratio
-NumPoints = nrow(Full.Table)
-Training = NumPoints * 0.7
-TrainingInt = round(Training)
-TrainingPoints = sample(1:NumPoints, TrainingInt, replace = FALSE)
-Full.Table.train = Full.Table[TrainingPoints,]
-Full.Table.valid = Full.Table[-TrainingPoints,]
+#Run random forest again with 10-fold cross-validation
 
-TrainModel_tune = tune(mRatesAvg ~ Altitude + Slope + Aridity + MeanTemp + MaxTemp + MinTemp + MeanPrec + PrecWet + PrecDry + GPP + Fusc + Mors + Palp +  LangAA + LangNC + LangNS + Evergreen + Decid + Tree + Shrub + Herb + Crop + Barren + Water + Kernel, importance=TRUE, na.action=c("na.omit"), data=Full.Table.train)
-TrainModel_tune$optimal[["mtry"]]
-TrainModel_tune$optimal[["nodesize"]]
-TrainModel = rfsrc(mRatesAvg ~ Altitude + Slope + Aridity + MeanTemp + MaxTemp + MinTemp + MeanPrec + PrecWet + PrecDry + GPP + Fusc + Mors + Palp +  LangAA + LangNC + LangNS + Evergreen + Decid + Tree + Shrub + Herb + Crop + Barren + Water + Kernel, importance=TRUE, na.action=c("na.omit"), mtry = TrainModel_tune$optimal[["mtry"]], nodesize =  TrainModel_tune$optimal[["nodesize"]], data=Full.Table.train)
+#Randomly shuffle the data
+yourData<-Full.Table[sample(nrow(Full.Table)),]
 
-#Calculate predicted vs actual migration rates for testing and training data, and RMSE for each dataset
-Rtrain = cor(TrainModel$predicted.oob, Full.Table.train$mRatesAvg)
-Rtest = cor((predict.rfsrc(TrainModel, Full.Table.valid))$predicted, Full.Table.valid$mRatesAvg)
-RMSEtrain = sqrt(mean((TrainModel$predicted.oob - Full.Table.train$mRatesAvg)^2))
-RMSEtest = sqrt(mean((predict.rfsrc(TrainModel, Full.Table.valid)$predicted - Full.Table.valid$mRatesAvg)^2))
+#Create 10 equally size folds
+folds <- cut(seq(1,nrow(yourData)),breaks=10,labels=FALSE)
 
-#Print 70/30 training/testing results and create figures
-TrainModel
-plot(TrainModel)
-paste("Rtrain", Rtrain)
-paste("Rtest", Rtest)
-paste("RMSEtrain", RMSEtrain)
-paste("RMSEtest", RMSEtest)
+#Perform 10-fold cross-validation
+for(i in 1:10){
+  #Segement your data by fold using the which() function 
+  testIndexes <- which(folds==i,arr.ind=TRUE)
+  testData <- yourData[testIndexes, ]
+  assign(paste0("testData_", i), testData)
+  trainData <- yourData[-testIndexes, ]
+  assign(paste0("trainData_", i), trainData)
+  #write.csv(trainData, paste0("/Users/eviepless/Documents/Postdoc/Postdoc_research/EasternAfrica/MAPS_FS_structure/Pagani_Scheinfeldt/ExcludeNorthernSudan/RF_Out/10_fold_CV/6_Inf_trainData_", i, ".csv"))
+}
 
-pdf("mRates_2-4_varImp.pdf", 7, 7)
-plot(TrainModel, m.target = NULL, plots.one.page = TRUE, sorted = TRUE, verbose = TRUE)
-dev.off() #MeanPrec and MinTemp are still the highest two variables
+for(i in 1:10) {
+  Full.Table.train = assign(paste0("trainData_",i), get(paste0("trainData_", i)))
+  Full.Table.valid = assign(paste0("testData_",i), get(paste0("testData_", i)))
+  TrainModel_tune = tune(mRatesAvg ~ Altitude + Slope + Aridity + MeanTemp + MaxTemp + MinTemp + MeanPrec + PrecWet + PrecDry + GPP + Fusc + Mors + Palp +  LangAA + LangNC + LangNS + Evergreen + Decid + Tree + Shrub + Herb + Crop + Barren + Water, importance=TRUE, na.action=c("na.omit"), data=Full.Table.train)
+  TrainModel_tune$optimal[["mtry"]]
+  TrainModel_tune$optimal[["nodesize"]]
+  TrainModel = rfsrc(mRatesAvg ~ Altitude + Slope + Aridity + MeanTemp + MaxTemp + MinTemp + MeanPrec + PrecWet + PrecDry + GPP + Fusc + Mors + Palp +  LangAA + LangNC + LangNS + Evergreen + Decid + Tree + Shrub + Herb + Crop + Barren + Water, importance=TRUE, na.action=c("na.omit"), mtry = TrainModel_tune$optimal[["mtry"]], nodesize =  TrainModel_tune$optimal[["nodesize"]], data=Full.Table.train)
+  
+  #TrainModel
+  #plot(TrainModel)
+  #results_df <- data.frame("Rtrain", "Rtest", "RMSEtrain", "RMSEtest")
+  Rtrain = cor(TrainModel$predicted.oob, Full.Table.train$mRatesAvg)
+  Rtest = cor((predict.rfsrc(TrainModel, Full.Table.valid))$predicted, Full.Table.valid$mRatesAvg)
+  RMSEtrain = sqrt(mean((TrainModel$predicted.oob - Full.Table.train$mRatesAvg)^2))
+  RMSEtest = sqrt(mean((predict.rfsrc(TrainModel, Full.Table.valid)$predicted - Full.Table.valid$mRatesAvg)^2))
+  resultsList <- c(Rtrain, Rtest, RMSEtrain, RMSEtest)
+  print(resultsList)
+  print(TrainModel)
+}
 
-pdf("mRates_2-4_TrainingObservedScatter.pdf", 5, 5)
-plot(TrainModel$predicted.oob, Full.Table.train$mRatesAvg,  xlab ="Predicted Migration (training)", ylab="Observed Migration (MAPS)")
-legend("bottomright", legend=c(paste0("Pearson correlation = ", round(Rtrain,3))), cex=0.7)
-dev.off()
-
-pdf("mRates_2-4_ValidObservedScatter.pdf", 5, 5)
-plot(predict.rfsrc(TrainModel, Full.Table.valid)$predicted, Full.Table.valid$mRatesAvg,  xlab ="Predicted Migration (validation)", ylab="Observed Migration (MAPS)")
-legend("bottomright", legend=c(paste0("Pearson correlation = ", round(Rtest,3))), cex=0.7)
-dev.off()
 
