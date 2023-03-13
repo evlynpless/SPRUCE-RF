@@ -2,6 +2,11 @@
 
 ###Part 0 (Bash): Clip E. Africa region ("MAPS1_clips")
 
+#Augrabies users can clip from the downloaded global tifs provided in /share/hennlab/users/espless/EnvironmentalData/Global
+#You can also download geotifs from a variety of online sources or create your own as needed
+
+# suggested way to clip geotifs: nice gdal_translate  -projwin <your coordinates> <input geotif> <output directory> -co COMPRESS=DEFLATE -co ZLEVEL=9
+
 nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 consensus_full_class_10.tif  /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/consensus_full_class_10_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
 nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 altitude_1KMmedian_MERIT.tif  /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/altitude_1KMmedian_MERIT_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9
 nice gdal_translate  -projwin 29.5 13.0 44.5 -7.5 slope_1KMmedian_MERIT.tif  /share/hennlab/users/espless/EnvironmentalData/MAPS1_clips/slope_1KMmedian_MERIT_MAPS1.tif -co COMPRESS=DEFLATE -co ZLEVEL=9

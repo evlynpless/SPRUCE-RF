@@ -17,15 +17,15 @@ Alternative option using Beagle: https://github.com/halasadi/ibd_data_pipeline
 
 1.C. Convert start and end positions for each IBD tract from position to centimorgans ("1C_Interpolate_Position_to_cM.R", adapted from https://github.com/halasadi/ibd_data_pipeline/blob/master/interpolate.R))
 
-1.D Concatanate the ibd segments from each chromosom into one file (e.g. below)
+1.D Concatanate the ibd segments from each chromosom into one file (e.g. command below)
 
 cat $IBD_OUT/Pagani_Scheinfeldt_ibd_chr*_merged_cM.ibd > $IBD_OUT/Pagani_Scheinfeldt_ibd_chr_all_merged_cM.ibd
 
 1.E Convert the output of hapibd (.ibd file) to .sims format for MAPS ("1E_IBDfile_to_sims.sh", adapted from https://github.com/halasadi/MAPS/tree/master/convert_beagle)
-You will need to edit script according to your selected IBD tract sizes and run separately for each time interval
+You will need to edit script according to your selected IBD tract sizes (which correspond to different time intervals) and run separately for each IBD tract size
 
 1.F Create and add accessory files (.outer, params-test-lower_upper.ini) to your MAPS working directory, and then run the MAPS software
-You will need to run the software separately for each time period
+You will need to run the software separately for each IBD tract size (i.e. time period)
 
 1.G Run plotmaps (See "https://github.com/halasadi/plotmaps")
 You may find a conda environment helpful to install plotmaps
@@ -42,6 +42,13 @@ plot_maps(add.pts = TRUE, add.graph = TRUE, add.countries = FALSE,
 
 
 1.E Extract migration rate values from the MAPS output files 
+
+A note on MAPS output files: most people do not interface directly with the output files from MAPS, so they are not well-described in the documentation. My steps to process these files is based on observation and brief correspondence with the MAPS autors.
+
+First, to find migration rates take the values in the "mRates.txt" output file (m) and convert them to 10^m. 
+Second, take the mean for each column (each column is a deme, and each row represents a posterior estimate of migration rate from the MCMC chain).
+Third, the order of columns in "mRates.txt" corresponds to the output file called "demes.txt", which indicates the geographic coordinate of each deme.
+Finally, cince migration rates were unbalanced among populations and skewed toward low values, we used a log transformation before including them as the response variable in the random forest model.
 
 Part 2: 
 

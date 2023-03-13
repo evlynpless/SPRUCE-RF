@@ -4,11 +4,17 @@ Summary:
 Have you ever encountered a migration surface and wondered why some areas were barriers or corridors to gene flow? SPRUCE is a flexible machine learning approach for determining what spatial variables are most predictive of a migration surface, particularly those created by the MAPS software (https://github.com/halasadi/MAPS).
 Here we provide a guide and associated scripts for implementing SPRUCE. This is a flexible pipeline that can be adjusted according to the needs of the user.
 
+Quick start:
+
+Refer to SPRUCE-Guide.txt for instructions.
+
 Software and prerequisites:
 
 Programs used in dealing with genomic data include Plink, SHAPEIT2, hap-ibd, and MAPS. Helpful tools for editing environmental data include GDAL and PKTOOLs. Various R packages are required (especially "raster", "plotmaps", and "randomForestSRC"); the specific packages required are listed in each script. These scripts are meant to provide full transparency about scripting procedure, and they will need updating to be run with new genetic and environmental data. 
 
-Scripts and materials included:
+The MAPS software is available here (https://github.com/halasadi/MAPS), and the EEMS software is available here (https://github.com/dipetkov/eems):
+
+Scripts and materials included in this repository:
 
 SPRUCE_Guide.txt 
 
@@ -21,3 +27,4 @@ SPRUCE_Guide.txt
 3_SPRUCE_RandomForest.R
 
 GenerateSpatialVariable (directory)
+
